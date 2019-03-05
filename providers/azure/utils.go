@@ -45,35 +45,6 @@ func getAzureNetworkInterfacesByNodeName(c *client.Client, nodeName string, stor
 		log.Errorf("get node %s falied", nodeName)
 		return nil, err
 	}
-	machineName, ok := node.Annotations[AnnotationKeyNodeMachine]
-	if !ok {
-		log.Errorf("get machineName from node %s falied", nodeName)
-		return nil, fmt.Errorf("get machineName from node %s falied", nodeName)
-	}
-	machine, err := storeLister.Machine.Get(machineName)
-	if err != nil {
-		log.Errorf("get machine %s falied", machineName)
-		return nil, err
-	}
-
-	if machine.Spec.ProviderConfig.Azure == nil {
-		log.Errorf("node %s machine %s has no azure machine config", nodeName, machineName)
-		return nil, fmt.Errorf("machine %s has no azure machine config", machineName)
-	}
-
-	networkInterfaces := make([]string, 0, len(machine.Spec.ProviderConfig.Azure.NetworkInterfaces))
-	for _, networkInterface := range machine.Spec.ProviderConfig.Azure.NetworkInterfaces {
-		networkInterfaces = append(networkInterfaces, networkInterface.ID)
-	}
-	return networkInterfaces, nil
-}
-
-func getAzureNetworkInterfacesByNodeName1(c *client.Client, nodeName string, storeLister *core.StoreLister) ([]string, error) {
-	node, err := storeLister.Node.Get(nodeName)
-	if err != nil {
-		log.Errorf("get node %s falied", nodeName)
-		return nil, err
-	}
 	cloudProvider, ok := node.Annotations[annotationMachineCloudProvider]
 	if !ok {
 		return nil, fmt.Errorf("not azure node")
