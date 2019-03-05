@@ -192,6 +192,7 @@ func (l *AzureProvider) ensureSync(lb *lbapi.LoadBalancer, tcp, udp map[string]s
 		return nil, err
 	}
 
+	// make sure default config is correct
 	azlb, err = ensureSyncDefaultAzureLBConfig(c, azlb, lb)
 
 	if err != nil {
@@ -326,6 +327,11 @@ func (l *AzureProvider) cleanupAzureLB() error {
 		}
 	}()
 
+	err = cleanUpSecurityGroup(c, l.oldAzureProvider.ResourceGroupName, l.oldAzureProvider.Name)
+	if err != nil {
+		return err
+	}
+
 	if to.Bool(l.oldAzureProvider.ReserveAzure) {
 		err = recoverDefaultAzureLoadBalancer(c, l.oldAzureProvider.ResourceGroupName, l.oldAzureProvider.Name)
 		return err
@@ -334,4 +340,23 @@ func (l *AzureProvider) cleanupAzureLB() error {
 	err = c.LoadBalancer.Delete(context.TODO(), l.oldAzureProvider.ResourceGroupName, l.oldAzureProvider.Name)
 	log.Infof("delete result %v", err)
 	return err
+}
+
+func cleanUpSecurityGroup(c *client.Client, groupName, lbName string) error {
+	log.Info("start cleanUpSecurityGroup...")
+	// get azure lb
+	azlb, err := c.LoadBalancer.Get(context.TODO(), groupName, lbName, "")
+	if err != nil {
+		return err
+	}
+	// get networks
+	azBackendPoolMap, err := getAzureBackendPoolIP(&azlb)
+	detachs := getDiffBetweenNetworkInterfaces(azBackendPoolMap, nil)
+	// get the sg to be delete
+	deleteSg, _, err := getSuitableSecurityGroup(c, detachs, nil)
+	if err != nil {
+		return err
+	}
+	// delete the useless rules from security group
+	return deleteUselessSecurityRules(c, deleteSg)
 }
