@@ -44,6 +44,8 @@ const (
 	securityGroupUDPPrefix                     = "cps-lb-udp-"
 
 	azureProviderStatusFormat = `{"status":{"providersStatuses":{"azure":{"phase":"%s","reason":"%s","message":"%s", "provisioningState":"%s"}}}}`
+
+	azureFinalizer = "finalizer.azure.loadbalancer.loadbalance.caicloud.io"
 )
 
 type networkInterfaceIDSet map[string]struct{}

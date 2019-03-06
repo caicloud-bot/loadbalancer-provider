@@ -745,6 +745,10 @@ func recoverDefaultAzureLoadBalancer(c *client.Client, groupName, lbName string)
 		}
 	}()
 	azlb, err := c.LoadBalancer.Get(context.TODO(), groupName, lbName, "")
+	// if the lb is deleted by others, dont't return err
+	if client.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -761,7 +765,7 @@ func recoverDefaultAzureLoadBalancer(c *client.Client, groupName, lbName string)
 	pools := azlb.BackendAddressPools
 
 	// update azlb
-	log.Infof("start recover default azure load lb")
+	log.Infof("start recover default azure loadbalancer lb")
 	_, err = c.LoadBalancer.CreateOrUpdate(context.TODO(), groupName, lbName, azlb)
 	if err != nil {
 		return err
