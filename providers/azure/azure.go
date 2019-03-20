@@ -416,13 +416,15 @@ func (l *AzureProvider) patchLoadBalancerAzureStatus(lb *lbapi.LoadBalancer, pha
 
 // clean up azure lb info and make oldAzureProvider nil
 func (l *AzureProvider) cleanupAzureLB(lb *lbapi.LoadBalancer, deleteLB bool) error {
+	log.Info("start clean up ")
 	if l.cleanAzure {
 		log.Info("azure loadbalancer is already clean...")
 		return nil
 	}
-	l.cleanAzure = true
+
 	if l.oldAzureProvider == nil || len(l.oldAzureProvider.Name) == 0 {
 		log.Errorf("old azure info nil")
+		l.cleanAzure = true
 		return nil
 	}
 	c, err := client.NewClient(&l.storeLister)
@@ -459,7 +461,11 @@ func (l *AzureProvider) cleanupAzureLB(lb *lbapi.LoadBalancer, deleteLB bool) er
 			l.patchLoadBalancerAzureStatus(lb, lbapi.AzureErrorPhase, err)
 			return err
 		}
-		return l.patachFinalizersAndStatus(lb, deleteLB)
+		err = l.patachFinalizersAndStatus(lb, deleteLB)
+		if err == nil {
+			l.cleanAzure = true
+		}
+		return err
 	}
 	log.Infof("delete azure lb group %s name %s", l.oldAzureProvider.ResourceGroupName, l.oldAzureProvider.Name)
 	err = c.LoadBalancer.Delete(context.TODO(), l.oldAzureProvider.ResourceGroupName, l.oldAzureProvider.Name)
@@ -467,7 +473,11 @@ func (l *AzureProvider) cleanupAzureLB(lb *lbapi.LoadBalancer, deleteLB bool) er
 	if err != nil {
 		return err
 	}
-	return l.patachFinalizersAndStatus(lb, deleteLB)
+	err = l.patachFinalizersAndStatus(lb, deleteLB)
+	if err == nil {
+		l.cleanAzure = true
+	}
+	return err
 }
 
 func cleanUpSecurityGroup(c *client.Client, groupName, lbName string) error {
